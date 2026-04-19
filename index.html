@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Embraer | BEAKON Sales Intelligence Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f5;color:#333;overflow-x:hidden;}
+.topbar{background:#003087;color:white;padding:12px 20px;display:flex;align-items:center;gap:20px;border-bottom:3px solid #0062cc;position:sticky;top:0;z-index:100;}
+.logo-pill{background:white;color:#003087;padding:6px 12px;border-radius:20px;font-weight:bold;font-size:13px;}
+.topbar-title{flex:1;font-size:18px;font-weight:600;}
+.pill{background:rgba(255,255,255,0.15);padding:5px 10px;border-radius:15px;font-size:12px;}
+.pill-status{background:#4caf50;padding:5px 10px;border-radius:15px;font-size:12px;}
+.refresh-banner{background:#0062cc;color:white;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;font-size:13px;position:sticky;top:50px;z-index:99;}
+.container{display:flex;min-height:calc(100vh - 80px);}
+.sidebar{width:240px;background:#003087;color:white;padding:20px 0;overflow-y:auto;height:calc(100vh - 80px);position:sticky;top:80px;}
+.sidebar-label{font-size:11px;font-weight:700;text-transform:uppercase;color:#999;padding:0 15px;margin-bottom:8px;letter-spacing:0.5px;}
+.sidebar-section{margin-bottom:22px;}
+.sidebar-item{padding:10px 15px;cursor:pointer;font-size:13px;transition:all 0.2s;border-left:3px solid transparent;}
+.sidebar-item:hover{background:rgba(0,98,204,0.2);}
+.sidebar-item.active{background:rgba(0,98,204,0.3);border-left-color:#0062cc;font-weight:600;}
+.sidebar-meta{font-size:10px;color:#aaa;padding:2px 15px 8px 15px;line-height:1.4;}
+.main-content{flex:1;padding:30px;overflow-y:auto;height:calc(100vh - 80px);}
+.section{display:none;}
+.section.active{display:block;}
+.section-title{font-size:24px;font-weight:700;margin-bottom:25px;color:#003087;}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-bottom:25px;}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:25px;}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-bottom:25px;}
+.card{background:white;border-radius:8px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.1);border-top:3px solid #0062cc;}
+.card-title{font-size:13px;font-weight:700;text-transform:uppercase;color:#666;margin-bottom:15px;letter-spacing:0.5px;}
+.kpi{font-size:32px;font-weight:700;color:#003087;margin-bottom:5px;}
+.kpi-label{font-size:12px;color:#999;}
+.kpi-change{font-size:12px;color:#4caf50;margin-top:5px;}
+.tag{display:inline-block;background:#f0f0f0;color:#333;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;margin-right:6px;margin-bottom:6px;}
+.tag-accent{background:rgba(0,98,204,0.12);color:#0062cc;}
+.tag-hot{background:#fdecea;color:#c62828;}
+.tag-india{background:#fef3c7;color:#92400e;}
+.tag-green{background:#e8f5e9;color:#1b5e20;}
+.contact-card{background:white;border-radius:6px;padding:15px;border-left:3px solid #0062cc;margin-bottom:12px;font-size:12px;}
+.contact-name{font-weight:600;color:#003087;margin-bottom:2px;}
+.contact-title{color:#666;font-size:11px;margin-bottom:5px;}
+.contact-location{color:#999;font-size:10px;}
+.prog-row{margin-bottom:15px;}
+.prog-label{display:flex;justify-content:space-between;font-size:11px;font-weight:600;color:#666;margin-bottom:5px;}
+.prog-bar{width:100%;height:8px;background:#e0e0e0;border-radius:4px;overflow:hidden;}
+.prog-fill{height:100%;background:#0062cc;border-radius:4px;}
+.loc-br{background:#bbf7d0;color:#065f46;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;}
+.loc-us{background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;}
+.loc-india{background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;}
+.chain{display:flex;align-items:stretch;gap:0;margin-bottom:14px;border-radius:10px;overflow:hidden;}
+.chain-num{color:#fff;width:38px;min-width:38px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;}
+.chain-body{flex:1;display:flex;flex-wrap:wrap;}
+.chain-cell{flex:1;min-width:200px;padding:12px 15px;border-right:1px solid #e4eaf5;}
+.chain-cell:last-child{border-right:none;}
+.chain-lbl{font-size:10px;font-weight:700;text-transform:uppercase;margin-bottom:5px;}
+.chain-head{font-size:12.5px;font-weight:700;color:#003087;}
+.chain-text{font-size:11.5px;color:#5a6a8a;margin-top:4px;line-height:1.6;}
+.bu-block{background:white;border-radius:10px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,0.08);margin-bottom:20px;}
+.bu-header{padding:14px 18px;display:flex;align-items:center;gap:10px;}
+.bu-header-title{font-size:15px;font-weight:700;color:white;}
+.bu-header-sub{font-size:11px;color:rgba(255,255,255,0.85);}
+.bu-action{padding:14px 18px;border-bottom:1px solid #f0f0f0;}
+.bu-action:last-child{border-bottom:none;}
+.bu-action-num{display:inline-block;background:#0062cc;color:white;border-radius:50%;width:20px;height:20px;text-align:center;line-height:20px;font-size:11px;font-weight:700;margin-right:8px;}
+.bu-action-title{font-size:13px;font-weight:700;color:#003087;margin-bottom:6px;}
+.bu-action-body{font-size:12px;color:#444;line-height:1.65;margin-bottom:8px;}
+.fast-sell{background:#e8f4fd;border-left:3px solid #0062cc;padding:7px 10px;border-radius:0 6px 6px 0;font-size:11px;color:#003087;font-weight:600;}
+.india-banner{background:linear-gradient(135deg,#ff6f00,#e91e63);color:white;border-radius:10px;padding:15px 18px;margin-bottom:20px;}
+.vg-block{background:linear-gradient(135deg,#7b1fa2,#9c27b0);border-radius:10px;padding:13px 16px;margin-bottom:16px;color:#fff;}
+::-webkit-scrollbar{width:8px;}::-webkit-scrollbar-track{background:#f1f1f1;}::-webkit-scrollbar-thumb{background:#0062cc;border-radius:4px;}
+@media(max-width:1200px){.grid-4{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:900px){.grid-3{grid-template-columns:repeat(2,1fr);}.grid-2{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<!-- ══ DYNAMIC DATA STORE ══ -->
+<script>
+// ─────────────────────────────────────────────────────────────────
+// EMBRAER_DATA: All numbers on a 5-day refresh cycle.
+// Source: Embraer SA FY 2025 Annual Report + Q4 2025 earnings call
+// Run data_refresh_embraer.py to update these values.
+// ─────────────────────────────────────────────────────────────────
+const EM_DATA = {
+  lastRefreshed: "Apr 19, 2026",
+  dataSource: "Embraer SA FY 2025 Annual Report + Q4 2025 earnings call",
+
+  // Financials
+  revenue:        7.6,    // $B USD FY 2025
+  revenueGrowth:  15,     // % YoY
+  backlog:        31.6,   // $B USD record Q4 2025
+  backlogGrowth:  12,     // % YoY
+  ebitMargin:     10.2,   // % adjusted EBIT
+  freeCashFlow:   450,    // $M USD FY 2025
+  headcount:      22000,  // global
+  openRoles:      600,    // est. LinkedIn
+
+  // Deliveries
+  commercialDeliveries: 87,   // E-Jets EIS 2025
+  execJetDeliveries:   136,   // Phenom/Praetor FY 2025
+  defenseDeliveries:    10,   // C-390 FY 2025 est.
+
+  // Key sites
+  sites: {
+    sjc:      { label: "São José dos Campos SP (HQ + Commercial)", programs: ["E175/E190/E195 E2", "C-390 Millennium", "Engineering CoE"], roles: 12000 },
+    melbourne:{ label: "Melbourne FL (Executive Jets)", programs: ["Phenom 100/300", "Praetor 500/600", "Eve eVTOL"], roles: 3500 },
+    nashville:{ label: "Nashville TN (MRO)", programs: ["Lineage 1000 completions", "Fleet MRO", "Americas service network"], roles: 800 },
+    newDelhi: { label: "New Delhi IN (Representative office)", programs: ["India sales", "Adani + Mahindra partnerships", "C-390 India campaign"], roles: 25 },
+    gaviao:   { label: "Gavião Peixoto SP (Defense)", programs: ["C-390 Millennium final assembly", "KC-390 tanker", "Super Tucano"], roles: 2000 }
+  }
+};
+</script>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo-pill">✈ BEAKON</div>
+  <div class="topbar-title">Embraer — Sales Intelligence Dashboard</div>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+    <div class="pill">$31.6B Backlog</div>
+    <div class="pill">22,000 Employees</div>
+    <div class="pill">ERJ:NYSE / EMBR3:B3</div>
+    <div class="pill-status">● Live</div>
+  </div>
+</div>
+
+<!-- REFRESH BANNER -->
+<div class="refresh-banner">
+  <span>📡 Embraer — CEO: Francisco Gomes Neto · Eve eVTOL maiden flight Dec 2025 · C-390 export campaign active · Record $31.6B backlog · India: Adani + Mahindra partnerships</span>
+  <span style="font-size:11px;opacity:.8;">Data: Apr 2026</span>
+</div>
+
+<div class="container">
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-label">Embraer</div>
+    <div class="sidebar-meta">São José dos Campos BR<br>Melbourne FL · Nashville TN<br>Commercial · Defense · ExecJets</div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Sales</div>
+    <div class="sidebar-item active" onclick="switchSection(event,'overview')">📊 Summary KPIs</div>
+    <div class="sidebar-item" onclick="switchSection(event,'contacts')">👥 Key Contacts</div>
+    <div class="sidebar-item" onclick="switchSection(event,'actions')">🎯 Sales Actions</div>
+    <div class="sidebar-item" onclick="switchSection(event,'skills')">⚡ Fast-Sell Skills</div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Intelligence</div>
+    <div class="sidebar-item" onclick="switchSection(event,'hiring')">💼 Hiring Intelligence</div>
+    <div class="sidebar-item" onclick="switchSection(event,'signals')">📡 Signal Chains</div>
+    <div class="sidebar-item" onclick="switchSection(event,'competitive')">⚔️ Competitive Intel</div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Programs & Strategy</div>
+    <div class="sidebar-item" onclick="switchSection(event,'programs')">✈️ Fleet Programs</div>
+    <div class="sidebar-item" onclick="switchSection(event,'india')">🇮🇳 India Strategy</div>
+    <div class="sidebar-item" onclick="switchSection(event,'eve')">🚁 Eve eVTOL</div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Reference</div>
+    <div class="sidebar-item" onclick="switchSection(event,'reference')">📚 Market Context</div>
+  </div>
+  <div style="padding:15px;font-size:10px;color:#666;border-top:1px solid rgba(255,255,255,0.1);margin-top:10px;">
+    Last refreshed: <span id="sb-refresh">—</span>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main-content">
+
+<!-- ═══ OVERVIEW ═══ -->
+<div id="overview" class="section active">
+  <div class="section-title">📊 Embraer — Summary KPIs</div>
+
+  <!-- Strategic banner -->
+  <div style="background:linear-gradient(135deg,#003087,#0062cc);color:white;border-radius:10px;padding:15px 20px;margin-bottom:22px;">
+    <div style="font-size:14px;font-weight:700;margin-bottom:6px;">🚀 Strategic Context: Three-Front Growth — Commercial E2 Ramp, Eve eVTOL, C-390 Global Export</div>
+    <div style="font-size:12px;opacity:.93;line-height:1.7;">Embraer is simultaneously growing on three fronts: (1) E-Jet E2 family production ramp (E175-E2, E190-E2, E195-E2) with record commercial backlog; (2) Eve eVTOL — maiden flight December 2025, targeting 2026 type certification; (3) C-390 Millennium defense transport on active export campaigns in India (Adani + Mahindra JV partners), US Air Force competition, and NATO countries. Record $31.6B backlog provides 4+ years of forward visibility. Melbourne FL is the executive jets hub (Phenom/Praetor). <strong>India partnership activity is the highest it has ever been — strategic entry point for Cyient.</strong></div>
+  </div>
+
+  <!-- KPI row 1 -->
+  <div class="grid-4" style="margin-bottom:20px;">
+    <div class="card">
+      <div class="card-title">Revenue (FY 2025)</div>
+      <div class="kpi" id="kpi-rev">$7.6B</div>
+      <div class="kpi-label">USD · FY 2025</div>
+      <div class="kpi-change" id="kpi-rev-g">▲ +15% YoY</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Order Backlog</div>
+      <div class="kpi" id="kpi-bl">$31.6B</div>
+      <div class="kpi-label">Record high Q4 2025</div>
+      <div class="kpi-change" id="kpi-bl-g">▲ +12% YoY</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Commercial Deliveries</div>
+      <div class="kpi" id="kpi-com">87</div>
+      <div class="kpi-label">E-Jets FY 2025</div>
+      <div class="kpi-change">▲ E2 family ramp ongoing</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Exec Jet Deliveries</div>
+      <div class="kpi" id="kpi-exec">136</div>
+      <div class="kpi-label">Phenom / Praetor FY 2025</div>
+      <div class="kpi-change">▲ Premium segment growing</div>
+    </div>
+  </div>
+
+  <!-- KPI row 2 -->
+  <div class="grid-4" style="margin-bottom:22px;">
+    <div class="card">
+      <div class="card-title">Headcount</div>
+      <div class="kpi">~22K</div>
+      <div class="kpi-label">Global employees</div>
+      <div class="kpi-change">▲ Hiring for E2 ramp</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Adj. EBIT Margin</div>
+      <div class="kpi" id="kpi-ebit">10.2%</div>
+      <div class="kpi-label">FY 2025</div>
+      <div class="kpi-change">▲ Expanding</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Free Cash Flow</div>
+      <div class="kpi" id="kpi-fcf">$450M</div>
+      <div class="kpi-label">FY 2025</div>
+      <div class="kpi-change">▲ Reinvesting in programs</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Open Roles (Est.)</div>
+      <div class="kpi" id="kpi-roles">~600+</div>
+      <div class="kpi-label">LinkedIn estimate</div>
+      <div class="kpi-change">Engineering + SW heavy</div>
+    </div>
+  </div>
+
+  <!-- Sites -->
+  <div class="card" style="margin-bottom:22px;">
+    <div class="card-title">🌐 Global Site Footprint</div>
+    <div class="grid-3" style="margin-bottom:0;">
+      <div style="background:#f0f9ff;border-radius:8px;padding:14px;border-left:4px solid #0062cc;">
+        <div style="font-size:12px;font-weight:700;color:#003087;margin-bottom:5px;">🇧🇷 São José dos Campos SP (HQ)</div>
+        <div style="font-size:11px;color:#555;line-height:1.6;">Primary engineering CoE · E-Jet E2 design and production · C-390 program · Corporate HQ · ~12,000 employees. All major program ownership, all engineering decision-makers.</div>
+      </div>
+      <div style="background:#f0f9ff;border-radius:8px;padding:14px;border-left:4px solid #0062cc;">
+        <div style="font-size:12px;font-weight:700;color:#003087;margin-bottom:5px;">🇧🇷 Gavião Peixoto SP (Defense)</div>
+        <div style="font-size:11px;color:#555;line-height:1.6;">C-390 Millennium final assembly · KC-390 tanker variant · Super Tucano light attack · Defense programs and military deliveries · ~2,000 employees.</div>
+      </div>
+      <div style="background:#f0f9ff;border-radius:8px;padding:14px;border-left:4px solid #15803d;">
+        <div style="font-size:12px;font-weight:700;color:#003087;margin-bottom:5px;">🇺🇸 Melbourne FL (Executive Jets + Eve)</div>
+        <div style="font-size:11px;color:#555;line-height:1.6;">Embraer Executive Jets HQ · Phenom 100/300 · Praetor 500/600 deliveries · Eve eVTOL HQ (NYSE: EVEX) · ~3,500 employees. Separate Eve entity listed on NYSE.</div>
+      </div>
+    </div>
+    <div class="grid-2" style="margin-top:12px;margin-bottom:0;">
+      <div style="background:#f0f9ff;border-radius:8px;padding:14px;border-left:4px solid #ff9800;">
+        <div style="font-size:12px;font-weight:700;color:#003087;margin-bottom:5px;">🇺🇸 Nashville TN (MRO + Completions)</div>
+        <div style="font-size:11px;color:#555;line-height:1.6;">Lineage 1000 completions center · Fleet MRO for Americas network · Service center operations · ~800 employees. Growing US MRO footprint as US E-Jet fleet ages.</div>
+      </div>
+      <div style="background:#fef9e7;border-radius:8px;padding:14px;border-left:4px solid #ff9800;">
+        <div style="font-size:12px;font-weight:700;color:#003087;margin-bottom:5px;">🇮🇳 New Delhi IN (Representative Office — Strategic Gap)</div>
+        <div style="font-size:11px;color:#555;line-height:1.6;">India representative office (~25 people, Oct 2025) · C-390 India campaign (Adani Defense + Mahindra Defence partnerships) · Engineering services gap = Cyient opportunity. <strong>No India engineering delivery center.</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Business Units -->
+  <div class="card">
+    <div class="card-title">📊 Revenue Mix by Business Unit</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+      <div style="background:#e8f4fd;border-radius:8px;padding:14px;text-align:center;border-top:3px solid #0062cc;">
+        <div style="font-size:13px;font-weight:700;color:#003087;">Commercial Aviation</div>
+        <div style="font-size:22px;font-weight:800;color:#0062cc;margin:6px 0;">~47%</div>
+        <div style="font-size:11px;color:#555;">E175/E190/E195 E2<br>~$3.6B revenue</div>
+      </div>
+      <div style="background:#f1f8e9;border-radius:8px;padding:14px;text-align:center;border-top:3px solid #2e7d32;">
+        <div style="font-size:13px;font-weight:700;color:#003087;">Executive Jets</div>
+        <div style="font-size:22px;font-weight:800;color:#2e7d32;margin:6px 0;">~26%</div>
+        <div style="font-size:11px;color:#555;">Phenom · Praetor<br>~$2.0B revenue</div>
+      </div>
+      <div style="background:#fff3e0;border-radius:8px;padding:14px;text-align:center;border-top:3px solid #e65100;">
+        <div style="font-size:13px;font-weight:700;color:#003087;">Defense & Security</div>
+        <div style="font-size:22px;font-weight:800;color:#e65100;margin:6px 0;">~18%</div>
+        <div style="font-size:11px;color:#555;">C-390 · Super Tucano<br>~$1.4B revenue</div>
+      </div>
+      <div style="background:#fce4ec;border-radius:8px;padding:14px;text-align:center;border-top:3px solid #c2185b;">
+        <div style="font-size:13px;font-weight:700;color:#003087;">Services & Support</div>
+        <div style="font-size:22px;font-weight:800;color:#c2185b;margin:6px 0;">~9%</div>
+        <div style="font-size:11px;color:#555;">MRO · Tech pubs<br>~$0.7B revenue</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SIGNAL CHAINS ═══ -->
+<div id="signals" class="section">
+  <div class="section-title">📡 Signal Chains — Why Embraer Is Hiring Now</div>
+
+  <!-- Chain 1 -->
+  <div class="chain" style="border:1.5px solid #bfdbfe;margin-bottom:14px;">
+    <div class="chain-num" style="background:#0062cc;">1</div>
+    <div class="chain-body">
+      <div class="chain-cell" style="background:white;">
+        <div class="chain-lbl" style="color:#0062cc;">✈️ Industry Signal</div>
+        <div class="chain-head">E-Jet E2 Production Ramp — São José dos Campos</div>
+        <div class="chain-text">Embraer's E175-E2, E190-E2, and E195-E2 are the world's most fuel-efficient narrowbody jets and are capturing significant regional aviation market share globally. US regional carriers (Republic, SkyWest, American Eagle) operate large E-Jet E1 fleets that are converting to E2. The E195-E2 is now in full production ramp — backlog for E2 family exceeds 300 aircraft. Each rate step requires production engineering scale-up: tooling, manufacturing process planning, and MRO documentation expansion.</div>
+      </div>
+      <div class="chain-cell" style="background:#fff8f0;">
+        <div class="chain-lbl" style="color:#b45309;">📈 Hiring Surge</div>
+        <div class="chain-head">Manufacturing Eng · Certification Docs · Structures (SJC Brazil)</div>
+        <div class="chain-text">Manufacturing Process Engineers (CATIA V5/V6, NX), Certification Specialists (ANAC/EASA/FAA), Structural Analysis Engineers (E2 wing box, empennage), AMM/AFM Technical Writers (ATA iSpec 2200). SJC Brazil is the program hub. Embraer is actively recruiting Brazil engineering talent — but with MFG quality and India delivery, Cyient can augment their documentation and structural analysis pipeline remotely.</div>
+      </div>
+      <div class="chain-cell" style="background:#f0fdf4;">
+        <div class="chain-lbl" style="color:#2e7d32;">🎯 Target Contact</div>
+        <div class="chain-head">Embraer Commercial Aviation Engineering TA — SJC Brazil</div>
+        <div class="chain-text">Search: "Embraer Commercial Aviation Talent Acquisition" or "Embraer Recrutamento Engenharia." US-side entry point: Embraer's Melbourne FL engineering team often manages Brazil program documentation partnerships. Pitch: "E2 production ramp documentation — AMM/AFM authoring, structures analysis — from our India center, supporting your SJC CoE at offshore economics."</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chain 2 -->
+  <div class="chain" style="border:1.5px solid #fde8c9;margin-bottom:14px;">
+    <div class="chain-num" style="background:#e65100;">2</div>
+    <div class="chain-body">
+      <div class="chain-cell" style="background:white;">
+        <div class="chain-lbl" style="color:#e65100;">🛡️ Industry Signal</div>
+        <div class="chain-head">C-390 Millennium Export Campaign — India, US, NATO</div>
+        <div class="chain-text">The Embraer C-390 Millennium is a modern military transport competing against Airbus A400M and Boeing C-17. Active export campaigns: (1) India — Indian Air Force requirement for medium transport, with Adani Defence and Mahindra Defence as Embraer's JV partners for local production; (2) US Air Force — C-390 competing for USAF Pathfinder replacement aircraft requirement; (3) Netherlands, Portugal, Hungary — NATO countries evaluating C-390. Each campaign generates local engineering support needs and industrial partnership documentation.</div>
+      </div>
+      <div class="chain-cell" style="background:#fff8f0;">
+        <div class="chain-lbl" style="color:#b45309;">📈 Hiring Surge</div>
+        <div class="chain-head">Defense Engineering · Military Docs · Systems Integration (SJC + India)</div>
+        <div class="chain-text">Military Technical Manual authors (DEF-STAN, MIL-DTL-81310 format), Systems Integration Engineers (MIL-STD-1553, DO-178C), Defense offset/industrial cooperation engineers for India campaign, Structural Analysis (C-390 airframe). India offset requirements for IAF deal mandate local content — Cyient's India engineering pedigree is directly pitchable for the industrial offset work.</div>
+      </div>
+      <div class="chain-cell" style="background:#f0fdf4;">
+        <div class="chain-lbl" style="color:#2e7d32;">🎯 Target Contact</div>
+        <div class="chain-head">Embraer Defense India — New Delhi Office + Adani/Mahindra JV</div>
+        <div class="chain-text">Search: "Embraer Defense India New Delhi" or "Embraer C-390 India." Also: Adani Defence Systems (Ahmedabad) and Mahindra Defence (Mumbai) are Embraer's India JV partners — both are potential Cyient clients for C-390 engineering work. Cyient pitch: "India-based aerospace engineering for C-390 industrial offset compliance — CATIA V5, structures, systems documentation." This is a three-way pitch: Embraer + Adani + Mahindra.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chain 3 -->
+  <div class="chain" style="border:1.5px solid #d4e9c9;margin-bottom:14px;">
+    <div class="chain-num" style="background:#2e7d32;">3</div>
+    <div class="chain-body">
+      <div class="chain-cell" style="background:white;">
+        <div class="chain-lbl" style="color:#2e7d32;">🚁 Industry Signal</div>
+        <div class="chain-head">Eve eVTOL — Post-Maiden Flight Type Certification Sprint</div>
+        <div class="chain-text">Eve Air Mobility (NYSE: EVEX), Embraer's eVTOL spin-off, completed its eVTOL maiden flight in December 2025 — a massive program milestone. The next phase is FAA Part 23/Special Conditions type certification, targeting 2026–2027. Eve has the largest eVTOL pre-order book globally (2,800+ orders from UAM operators and airlines). Each certification milestone triggers a fresh documentation and engineering sprint: MOC (Means of Compliance), AMC (Acceptable Means), certification test reports, and SOI (Stage of Involvement) documentation for the FAA.</div>
+      </div>
+      <div class="chain-cell" style="background:#fff8f0;">
+        <div class="chain-lbl" style="color:#b45309;">📈 Hiring Surge</div>
+        <div class="chain-head">eVTOL Cert Docs · FAA Part 23 · Embedded SW (Melbourne FL)</div>
+        <div class="chain-text">eVTOL Certification Engineers (FAA Part 23 / Special Conditions), Embedded SW Engineers (DO-178C for fly-by-wire FCS), Battery Systems Engineers (DO-311A for lithium battery cert), Certification Technical Writers (MOC/AMC documentation). Melbourne FL is Eve HQ — most roles are in Melbourne or remote. All deliverable from India. eVTOL certification documentation is a growing new category that Cyient can enter now as a first-mover.</div>
+      </div>
+      <div class="chain-cell" style="background:#f0fdf4;">
+        <div class="chain-lbl" style="color:#2e7d32;">🎯 Target Contact</div>
+        <div class="chain-head">Eve eVTOL Engineering TA — Melbourne FL</div>
+        <div class="chain-text">Search: "Eve Air Mobility Engineering Talent Acquisition Melbourne FL." Also: Eve is NYSE-listed (EVEX) — separate engineering TA team from Embraer. Pitch: "We deliver FAA Part 23 certification documentation and DO-178C embedded SW engineering from our Hyderabad center. eVTOL is a new category — your cert doc sprint needs our offshore factory model." Ask for: Director Certification Engineering or VP Engineering at Eve.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chain 4 -->
+  <div class="chain" style="border:1.5px solid #e0d4f7;margin-bottom:14px;">
+    <div class="chain-num" style="background:#6a1b9a;">4</div>
+    <div class="chain-body">
+      <div class="chain-cell" style="background:white;">
+        <div class="chain-lbl" style="color:#6a1b9a;">🔧 Industry Signal</div>
+        <div class="chain-head">E-Jet E1 Fleet MRO Expansion — Nashville TN + Americas</div>
+        <div class="chain-text">Approximately 1,500+ E-Jet E1 aircraft (E170/175/190/195) are in active service globally, with the US being the largest market. As these aircraft age (oldest E170s are now 20+ years old), MRO demand grows: airworthiness directives, service bulletins, aging aircraft inspection programs (AAIP), and structural repair documentation. Nashville TN is Embraer's Americas MRO hub — growing to support the US regional carrier fleet. This is a 15–20 year documentation demand tail.</div>
+      </div>
+      <div class="chain-cell" style="background:#fff8f0;">
+        <div class="chain-lbl" style="color:#b45309;">📈 Hiring Surge</div>
+        <div class="chain-head">MRO Docs · AAIP Engineering · SB/AD Authoring (Nashville TN)</div>
+        <div class="chain-text">Maintenance Manual update engineers (ATA iSpec 2200), Service Bulletin authors, Aging Aircraft Inspection Program (AAIP) engineers, Non-Destructive Testing (NDT) procedure authors, Illustrated Parts Catalog updates. Nashville TN is the delivery hub for Americas fleet. Cyient tech pubs team (S1000D/ATA) is directly applicable — pilot project offer: 3 Cyient tech writers for a 6-month SB authoring contract.</div>
+      </div>
+      <div class="chain-cell" style="background:#f0fdf4;">
+        <div class="chain-lbl" style="color:#2e7d32;">🎯 Target Contact</div>
+        <div class="chain-head">Embraer Services & Support TA — Nashville TN</div>
+        <div class="chain-text">Search: "Embraer Services Support Talent Acquisition Nashville" or "Embraer MRO Nashville." Pitch: "We author ATA iSpec 2200 Maintenance Manuals and Service Bulletins for regional aircraft fleets — same quality stack Embraer expects, delivered from Hyderabad at offshore economics. Let's scope a 3-month E175 SB pilot." Entry: MRO documentation manager or Director, Customer Support Engineering.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chain 5 -->
+  <div class="chain" style="border:1.5px solid #fcd4e0;margin-bottom:14px;">
+    <div class="chain-num" style="background:#b71c1c;">5</div>
+    <div class="chain-body">
+      <div class="chain-cell" style="background:white;">
+        <div class="chain-lbl" style="color:#b71c1c;">💼 Industry Signal</div>
+        <div class="chain-head">Praetor 600 / Phenom 300 — Executive Jet NPI + MRO</div>
+        <div class="chain-text">The Praetor 600 (2019) and updated Phenom 300E are Embraer's premium bizav products based in Melbourne FL. Both platforms are in full production with growing fleet-in-service. NPI support phase generates: structural analysis updates for customer-requested modifications, IFC (In-Flight Connectivity) integration STC engineering, avionics upgrade SB authoring. Collins Pro Line Fusion is the avionics suite on Praetor 600 — avionics engineers with Collins pedigree are directly pitchable. Competition: Bombardier Challenger 3500 and Textron Citation Longitude.</div>
+      </div>
+      <div class="chain-cell" style="background:#fff8f0;">
+        <div class="chain-lbl" style="color:#b45309;">📈 Hiring Surge</div>
+        <div class="chain-head">Exec Jet Structures · Avionics SB · IFC Engineering (Melbourne FL)</div>
+        <div class="chain-text">Structural Analysis Engineers (Part 23/25), Avionics Systems Engineers (Collins Pro Line Fusion), IFC/Cabin Systems Engineers (Honeywell Aspire/Viasat integration), Service Bulletin authors (Phenom/Praetor AMM). Melbourne FL is the hub. Most roles are non-clearance, fully offshore-eligible. Praetor 600 and Phenom 300 both carry Honeywell components — cross-sell angle with Honeywell account.</div>
+      </div>
+      <div class="chain-cell" style="background:#f0fdf4;">
+        <div class="chain-lbl" style="color:#2e7d32;">🎯 Target Contact</div>
+        <div class="chain-head">Embraer Executive Jets Engineering TA — Melbourne FL</div>
+        <div class="chain-text">Search: "Embraer Executive Jets Engineering Melbourne Florida." Also: Eve and EEJ share Melbourne FL campus — single TA team for both. Pitch: "Collins Pro Line Fusion avionics engineering and structural analysis for Praetor/Phenom NPI support — from our Hyderabad center. We're active on Pro Line Fusion programs at Bombardier and Textron." Name-drop peer programs for instant credibility.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chain 6 -->
+  <div class="chain" style="border:1.5px solid #dcfce7;margin-bottom:14px;">
+    <div class="chain-num" style="background:#15803d;">6</div>
+    <div class="chain-body">
+      <div class="chain-cell" style="background:white;">
+        <div class="chain-lbl" style="color:#15803d;">🇮🇳 Industry Signal</div>
+        <div class="chain-head">Embraer India Partnerships — Adani Defence + Mahindra + New Delhi Office</div>
+        <div class="chain-text">Embraer opened its India representative office in New Delhi in October 2025 — the most significant India commitment in Embraer's history. The C-390 India campaign involves two heavyweight industrial partners: Adani Defence (Ahmedabad) and Mahindra Defence (Mumbai) as potential JV/local manufacturing partners for IAF's medium transport requirement. Embraer has no India engineering delivery center — this is a structural gap as India campaign engineering requirements grow. HAL (Hindustan Aeronautics) is also engaged on offset compliance engineering.</div>
+      </div>
+      <div class="chain-cell" style="background:#fff8f0;">
+        <div class="chain-lbl" style="color:#b45309;">📈 Hiring Surge</div>
+        <div class="chain-head">India Offset Engineering · C-390 Tech Pubs (India)</div>
+        <div class="chain-text">Industrial offset engineering for IAF C-390 deal (mandatory DPP 2016 offset), Technical Manual authoring for C-390 IAF variant (Indian military format), structural analysis support for local production JV. Adani Defence Systems is a growing aerospace manufacturer needing engineering services capability. Mahindra Defence has existing engineering infrastructure. Cyient's Hyderabad presence = natural partner for all three: Embraer, Adani, Mahindra.</div>
+      </div>
+      <div class="chain-cell" style="background:#f0fdf4;">
+        <div class="chain-lbl" style="color:#2e7d32;">🎯 Target Contact</div>
+        <div class="chain-head">Embraer India Rep Office — New Delhi + Adani/Mahindra JV</div>
+        <div class="chain-text">Search: "Embraer India New Delhi" and "Adani Defence Engineering Ahmedabad." Also: Mahindra Defence VP Engineering on LinkedIn. Three-way pitch: "Cyient BIETC Hyderabad provides the engineering delivery infrastructure for Embraer India's offset and local production requirements — structural analysis, technical manuals, systems engineering. We're already embedded in the India aerospace ecosystem." Ask: Sam's Cyient network for intro to Adani Defence or Mahindra Defence engineering leadership.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ SALES ACTIONS ═══ -->
+<div id="actions" class="section">
+  <div class="section-title">🎯 Sales Actions — Prioritized by BU</div>
+
+  <div style="background:#e8f4fd;border-radius:8px;padding:12px 16px;margin-bottom:20px;border-left:4px solid #0062cc;">
+    <div style="font-size:13px;font-weight:700;color:#003087;margin-bottom:4px;">✅ Lead every Embraer conversation with:</div>
+    <div style="font-size:12px;color:#444;line-height:1.7;">AS9100 certified · ATA iSpec 2200 / S1000D tech pubs delivery · CATIA V5 structures pedigree · DO-178C avionics SW pedigree · Collins Pro Line Fusion avionics expertise (Praetor/Phenom angle) · India engineering presence (Hyderabad BIETC) · Active on peer bizav/commercial OEM programs</div>
+  </div>
+
+  <!-- BU Block 1: Commercial + SJC -->
+  <div class="bu-block">
+    <div class="bu-header" style="background:linear-gradient(135deg,#003087,#0062cc);">
+      <div>
+        <div class="bu-header-title">✈️ Commercial Aviation — E-Jet E2 Ramp (São José dos Campos Brazil)</div>
+        <div class="bu-header-sub">E175/E190/E195-E2 production engineering · Certification docs · Record backlog 300+ aircraft</div>
+      </div>
+    </div>
+    <div class="bu-action">
+      <div class="bu-action-title"><span class="bu-action-num">1</span>E2 Family Documentation Factory — AMM/AFM/SRM Authoring</div>
+      <div class="bu-action-body">Embraer's E-Jet E2 family (E175-E2, E190-E2, E195-E2) has a record backlog of 300+ aircraft requiring full ATA iSpec 2200 Airplane Maintenance Manuals, Airplane Flight Manuals, and Structural Repair Manuals for each variant. Each new aircraft variant/modification requires documentation updates through the product lifecycle. SJC engineering CoE owns the program — but the documentation factory model (high-volume, repeatable authoring) is a natural offshore play. Cyient's tech pubs team delivers this exact model for Boeing, Textron, and RTX. Pitch: "We run your E2 documentation factory from Hyderabad — ATA iSpec 2200, S1000D-ready, zero-escape quality. Same model we run for three of your peer OEMs." Time-pressure: E2 rate ramp means documentation demand compounds every quarter.</div>
+      <div class="fast-sell">Fast-sell: ATA iSpec 2200 · S1000D · AMM/AFM/SRM/IPC authoring · E175/E190/E195 E2 · Documentation factory model · Hyderabad CoE · Peer OEM references</div>
+    </div>
+    <div class="bu-action">
+      <div class="bu-action-title"><span class="bu-action-num">2</span>ANAC/EASA/FAA Certification Documentation Support</div>
+      <div class="bu-action-body">Embraer certifies its aircraft under Brazilian ANAC (Agência Nacional de Aviação Civil) with validations by EASA (Europe) and FAA (US). Each certification requires extensive documentation: Type Design Documentation (TDD), Certification Basis documents, MOC (Means of Compliance) reports, and Flight Test Reports. The E2 family is in validation phase for additional markets — each new country certification requires incremental documentation. Cyient's certification documentation capability (FAA Part 25/23 equivalent, ANAC) is directly applicable. Brazil-based TA teams are familiar with India offshore partnerships (TCS, Wipro, Infosys all have SJC presence) — Cyient needs to be on this list.</div>
+      <div class="fast-sell">Fast-sell: ANAC cert docs · FAA Part 25 validation · MOC documentation · Certification specialist support · SJC Brazil → Hyderabad offshore model</div>
+    </div>
+  </div>
+
+  <!-- BU Block 2: Defense + India -->
+  <div class="bu-block">
+    <div class="bu-header" style="background:linear-gradient(135deg,#7b2800,#e65100);">
+      <div>
+        <div class="bu-header-title">🛡️ Defense + India — C-390 Campaign, Adani/Mahindra JV, New Delhi Office</div>
+        <div class="bu-header-sub">C-390 IAF campaign · Industrial offset engineering · Cyient BIETC Hyderabad = strategic fit</div>
+      </div>
+    </div>
+    <div class="bu-action">
+      <div class="bu-action-title"><span class="bu-action-num">1</span>C-390 India Industrial Offset — Engineering for DPP 2016 Compliance</div>
+      <div class="bu-action-body">India's Defence Procurement Policy (DPP 2016) mandates a minimum 30% industrial offset for defense imports above ₹300 crore (~$36M). If IAF selects C-390, Embraer's India JV partners (Adani Defence + Mahindra Defence) must absorb significant engineering and manufacturing offset work. This offset engineering work needs delivery capability: structural analysis, systems documentation, avionics testing support, and technical manual authoring for the C-390 IAF variant. Cyient's BIETC Hyderabad has exactly this infrastructure — and Cyient already has aerospace credentials that Adani Defence (newer player) and Mahindra Defence (growing capability) cannot fully match internally. Three-way approach: pitch Cyient to Embraer India, Adani Defence, and Mahindra Defence simultaneously.</div>
+      <div class="fast-sell">Fast-sell: DPP offset engineering · BIETC Hyderabad · C-390 structural analysis · Military tech manuals · Adani Defence partnership · Mahindra Defence sub-contracting</div>
+    </div>
+    <div class="bu-action">
+      <div class="bu-action-title"><span class="bu-action-num">2</span>New Delhi Office — Engineering Support for India Sales/Campaign Team</div>
+      <div class="bu-action-body">Embraer's new New Delhi office (Oct 2025) is a sales/representative office with minimal engineering staff (~25 people). As the C-390 campaign and E2 regional aviation pitches grow in India, Embraer's India team will need India-based engineering support for customer demonstrations, technical proposal engineering, and offset calculation modeling. Cyient's network in Indian aerospace (HAL, IAF ecosystem, MoD) is a genuine differentiator. Position Cyient as Embraer India's engineering back-office: "When your New Delhi team needs engineering depth, we're 3 hours south in Hyderabad."</div>
+      <div class="fast-sell">Fast-sell: India engineering network · HAL ecosystem · MoD/IAF technical support · C-390 India campaign · 3 hrs from New Delhi (Hyderabad BIETC)</div>
+    </div>
+  </div>
+
+  <!-- BU Block 3: Eve eVTOL -->
+  <div class="bu-block">
+    <div class="bu-header" style="background:linear-gradient(135deg,#1b5e20,#2e7d32);">
+      <div>
+        <div class="bu-header-title">🚁 Eve eVTOL — Post-Maiden Flight Certification Sprint (Melbourne FL)</div>
+        <div class="bu-header-sub">NYSE: EVEX · FAA Part 23 cert · DO-178C embedded SW · First-mover eVTOL documentation opportunity</div>
+      </div>
+    </div>
+    <div class="bu-action">
+      <div class="bu-action-title"><span class="bu-action-num">1</span>eVTOL FAA Certification Documentation — First-Mover Opportunity</div>
+      <div class="bu-action-body">Eve's eVTOL completed its maiden flight in December 2025 — now enters the FAA certification gauntlet (Special Conditions / Part 23 enhanced). eVTOL certification is a new category with no established documentation vendor ecosystem. The first ER&D firm to build eVTOL certification documentation expertise will lock in multi-year work across Eve and all competing eVTOL programs (Joby, Archer, Wisk, Lilium successor, etc.). Cyient has the FAA Part 25/23 certification pedigree — applying it to eVTOL now, before competitors, is the play. Eve's cert sprint targets 2026–2027 FAA approval. They cannot do this documentation volume internally alone. Cyient pitch: "We built certification documentation factories for fixed-wing programs — we want to build the eVTOL version with you. Let's be your Eve cert doc partner."</div>
+      <div class="fast-sell">Fast-sell: FAA Special Conditions · Part 23 cert docs · DO-178C FCS software · DO-311A battery cert · MOC/AMC documentation · eVTOL first-mover · Melbourne FL</div>
+    </div>
+  </div>
+
+  <!-- BU Block 4: Services/MRO -->
+  <div class="bu-block">
+    <div class="bu-header" style="background:linear-gradient(135deg,#3730a3,#4f46e5);">
+      <div>
+        <div class="bu-header-title">🔧 Services & Support — E-Jet E1 MRO + Exec Jet Docs (Nashville TN + Melbourne FL)</div>
+        <div class="bu-header-sub">1,500+ E-Jet E1 active fleet · ATA iSpec 2200 docs · 15-year sustainment tail</div>
+      </div>
+    </div>
+    <div class="bu-action">
+      <div class="bu-action-title"><span class="bu-action-num">1</span>E-Jet E1 Fleet Sustainment Documentation (Nashville TN)</div>
+      <div class="bu-action-body">1,500+ E-Jet E1 aircraft (E170/175/190/195) are aging in US regional carrier fleets. Embraer's Nashville TN MRO hub manages Americas fleet support. Airworthiness Directives (FAA ADs), Service Bulletins, Aging Aircraft Inspection Programs (AAIP), and supplemental structural inspection documents (SSID) are required for FAA compliance as the fleet ages. This creates a steady documentation workload that grows every year. Cyient tech pubs team: ATA iSpec 2200, SB authoring, AAIP documentation. Pilot offer: 3-month E175 SB authoring pilot from Hyderabad, fully auditable, capped scope. Nashville TA is the entry point — much lower barrier than Brazil HQ.</div>
+      <div class="fast-sell">Fast-sell: ATA iSpec 2200 SB/AD authoring · E175/E190 AMM · AAIP documentation · Nashville TN entry · Pilot project scope offer</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ HIRING INTELLIGENCE ═══ -->
+<div id="hiring" class="section">
+  <div class="section-title">💼 Hiring Intelligence</div>
+  <div class="grid-2" style="margin-bottom:22px;">
+    <div class="card">
+      <div class="card-title">📍 Hiring by Location</div>
+      <div class="prog-row"><div class="prog-label"><span>São José dos Campos BR (HQ Engineering)</span><span>~300+ roles</span></div><div class="prog-bar"><div class="prog-fill" style="width:80%;"></div></div></div>
+      <div class="prog-row"><div class="prog-label"><span>Melbourne FL (ExecJets + Eve)</span><span>~150+ roles</span></div><div class="prog-bar"><div class="prog-fill" style="width:45%;"></div></div></div>
+      <div class="prog-row"><div class="prog-label"><span>Nashville TN (MRO)</span><span>~40 roles</span></div><div class="prog-bar"><div class="prog-fill" style="width:15%;"></div></div></div>
+      <div class="prog-row"><div class="prog-label"><span>Gavião Peixoto SP (Defense)</span><span>~80 roles</span></div><div class="prog-bar"><div class="prog-fill" style="width:25%;background:#e65100;"></div></div></div>
+      <div class="prog-row"><div class="prog-label"><span>New Delhi IN (Rep Office)</span><span>~5–10 roles</span></div><div class="prog-bar"><div class="prog-fill" style="width:5%;background:#ff9800;"></div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🔧 Top Skill Clusters Open Now</div>
+      <div class="prog-row"><div class="prog-label"><span>Technical Publications (ATA iSpec 2200 / S1000D)</span><span>HIGH</span></div><div class="prog-bar"><div class="prog-fill" style="width:90%;"></div></div></div>
+      <div class="prog-row"><div class="prog-label"><span>Structures / Stress Engineering (CATIA V5, NX)</span><span>HIGH</span></div><div class="prog-bar"><div class="prog-fill" style="width:85%;"></div></div></div>
+      <div class="prog-row"><div class="prog-label"><span>Certification Engineering (ANAC/FAA Part 23/25)</span><span>HIGH</span></div><div class="prog-bar"><div class="prog-fill" style="width:80%;"></div></div></div>
+      <div class="prog-row"><div class="prog-label"><span>eVTOL Cert Docs (FAA Special Conditions)</span><span>NEW/HOT</span></div><div class="prog-bar"><div class="prog-fill" style="width:70%;background:#c2185b;"></div></div></div>
+      <div class="prog-row"><div class="prog-label"><span>DO-178C Embedded SW (FCS / Avionics)</span><span>MED</span></div><div class="prog-bar"><div class="prog-fill" style="width:55%;background:#ff9800;"></div></div></div>
+      <div class="prog-row"><div class="prog-label"><span>MRO Docs SB/AD (E-Jet E1 fleet)</span><span>STEADY</span></div><div class="prog-bar"><div class="prog-fill" style="width:40%;background:#4caf50;"></div></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚡ Hot Roles — High Offshore-Eligibility</div>
+    <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead><tr style="background:#f0f8ff;"><th style="padding:9px;text-align:left;border-bottom:2px solid #0062cc;">Role</th><th style="padding:9px;text-align:left;border-bottom:2px solid #0062cc;">Site</th><th style="padding:9px;text-align:left;border-bottom:2px solid #0062cc;">Program</th><th style="padding:9px;text-align:left;border-bottom:2px solid #0062cc;">Offshore OK?</th><th style="padding:9px;text-align:left;border-bottom:2px solid #0062cc;">Cyient Skill</th></tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #eee;"><td style="padding:9px;"><strong>AMM/AFM Technical Writer</strong></td><td style="padding:9px;"><span class="loc-br">SJC Brazil</span></td><td style="padding:9px;">E-Jet E2 ramp</td><td style="padding:9px;"><span style="color:#2e7d32;font-weight:700;">✅ Yes</span></td><td style="padding:9px;">ATA iSpec 2200 · S1000D · documentation factory</td></tr>
+        <tr style="border-bottom:1px solid #eee;background:#fafafa;"><td style="padding:9px;"><strong>Certification Specialist (ANAC/FAA)</strong></td><td style="padding:9px;"><span class="loc-br">SJC Brazil</span> / <span class="loc-us">Melbourne FL</span></td><td style="padding:9px;">E2 + Eve eVTOL</td><td style="padding:9px;"><span style="color:#2e7d32;font-weight:700;">✅ Yes</span></td><td style="padding:9px;">FAA Part 23/25 · ANAC validation · MOC docs</td></tr>
+        <tr style="border-bottom:1px solid #eee;"><td style="padding:9px;"><strong>eVTOL Cert Engineer (DO-178C)</strong></td><td style="padding:9px;"><span class="loc-us">Melbourne FL</span></td><td style="padding:9px;">Eve eVTOL</td><td style="padding:9px;"><span style="color:#2e7d32;font-weight:700;">✅ Yes</span></td><td style="padding:9px;">DO-178C DAL A/B · FAA Special Conditions · FCS SW cert</td></tr>
+        <tr style="border-bottom:1px solid #eee;background:#fafafa;"><td style="padding:9px;"><strong>Structural Analysis Engineer</strong></td><td style="padding:9px;"><span class="loc-br">SJC Brazil</span></td><td style="padding:9px;">E2 wing box / C-390</td><td style="padding:9px;"><span style="color:#2e7d32;font-weight:700;">✅ Yes</span></td><td style="padding:9px;">CATIA V5 · Abaqus · Part 25/23 structures</td></tr>
+        <tr style="border-bottom:1px solid #eee;"><td style="padding:9px;"><strong>E-Jet SB/AD Author</strong></td><td style="padding:9px;"><span class="loc-us">Nashville TN</span></td><td style="padding:9px;">E-Jet E1 fleet</td><td style="padding:9px;"><span style="color:#2e7d32;font-weight:700;">✅ Yes</span></td><td style="padding:9px;">ATA iSpec 2200 · SB/AD authoring · AAIP</td></tr>
+        <tr style="border-bottom:1px solid #eee;background:#fafafa;"><td style="padding:9px;"><strong>Collins Pro Line Fusion Avionics Eng.</strong></td><td style="padding:9px;"><span class="loc-us">Melbourne FL</span></td><td style="padding:9px;">Praetor 600 / Phenom 300</td><td style="padding:9px;"><span style="color:#2e7d32;font-weight:700;">✅ Yes</span></td><td style="padding:9px;">Pro Line Fusion · ARINC 429 · avionics systems</td></tr>
+        <tr style="background:#fafafa;"><td style="padding:9px;"><strong>C-390 India Offset Engineer</strong></td><td style="padding:9px;"><span class="loc-india">New Delhi IN</span> / Adani/Mahindra</td><td style="padding:9px;">C-390 IAF campaign</td><td style="padding:9px;"><span style="color:#2e7d32;font-weight:700;">✅ Preferred India</span></td><td style="padding:9px;">DPP offset · structures · tech manuals · Hyderabad BIETC</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ KEY CONTACTS ═══ -->
+<div id="contacts" class="section">
+  <div class="section-title">👥 Key Contacts — Outreach Map</div>
+  <div class="grid-2">
+    <div>
+      <div class="contact-card">
+        <div class="contact-name">Director, Engineering TA — São José dos Campos, Brazil</div>
+        <div class="contact-title">Leads all commercial and engineering recruiting for SJC CoE</div>
+        <div class="contact-location"><span class="loc-br">SJC Brazil</span> · Search: "Embraer Recrutamento Engenharia São José dos Campos"</div>
+        <div style="margin-top:8px;font-size:11px;color:#555;">Primary contact for E2 documentation and structures partnerships. Lead with: "E2 production ramp documentation factory — AMM/AFM authoring from India, ATA iSpec 2200 ready."</div>
+      </div>
+      <div class="contact-card">
+        <div class="contact-name">VP Engineering / CTO Office — Eve Air Mobility, Melbourne FL</div>
+        <div class="contact-title">Leads Eve eVTOL engineering and certification program</div>
+        <div class="contact-location"><span class="loc-us">Melbourne FL</span> · Search: "Eve Air Mobility VP Engineering" or "Eve EVEX CTO"</div>
+        <div style="margin-top:8px;font-size:11px;color:#555;">Decision-maker for Eve eVTOL cert documentation partnerships. First-mover opportunity — no established eVTOL cert doc vendor ecosystem yet. Move fast.</div>
+      </div>
+      <div class="contact-card">
+        <div class="contact-name">Director, Customer Support Engineering — Nashville TN</div>
+        <div class="contact-title">Leads E-Jet E1/E2 fleet MRO documentation and support engineering</div>
+        <div class="contact-location"><span class="loc-us">Nashville TN</span> · Search: "Embraer Customer Support Nashville"</div>
+        <div style="margin-top:8px;font-size:11px;color:#555;">Lower-barrier entry point than Brazil HQ. Pilot project angle: 3-month E175 SB authoring scope, Hyderabad delivery, capped budget.</div>
+      </div>
+    </div>
+    <div>
+      <div class="contact-card">
+        <div class="contact-name">Embraer India Country Manager — New Delhi</div>
+        <div class="contact-title">Leads India sales/representative office, C-390 campaign, partnerships</div>
+        <div class="contact-location"><span class="loc-india">New Delhi IN</span> · Search: "Embraer India Country Manager" or "Embraer India Director"</div>
+        <div style="margin-top:8px;font-size:11px;color:#555;">Strategic entry point for India partnership. Pitch Cyient as engineering delivery partner for C-390 India offset and local production support. Ask Sam's Cyient India network for intro.</div>
+      </div>
+      <div class="contact-card">
+        <div class="contact-name">VP Engineering — Adani Defence Systems, Ahmedabad</div>
+        <div class="contact-title">Leads aerospace engineering capability at Adani Defence (Embraer C-390 JV partner)</div>
+        <div class="contact-location"><span class="loc-india">Ahmedabad IN</span> · Search: "Adani Defence Systems VP Engineering"</div>
+        <div style="margin-top:8px;font-size:11px;color:#555;">Adani is building aerospace engineering capability rapidly. Cyient can provide structures, tech pubs, and avionics engineering for C-390 offset work. Adani needs proven aerospace partners, not startups.</div>
+      </div>
+      <div class="contact-card">
+        <div class="contact-name">Director Engineering — Mahindra Defence, Mumbai</div>
+        <div class="contact-title">Leads Mahindra Defence engineering (Embraer C-390 JV partner)</div>
+        <div class="contact-location"><span class="loc-india">Mumbai IN</span> · Search: "Mahindra Defence Engineering Director"</div>
+        <div style="margin-top:8px;font-size:11px;color:#555;">Mahindra Defence is more established than Adani in aerospace. Existing Mahindra-Satyam legacy in aerospace engineering services (now TCS) suggests they understand the model. Cyient as sub-contractor or co-delivery partner for C-390 work.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ EVE eVTOL ═══ -->
+<div id="eve" class="section">
+  <div class="section-title">🚁 Eve Air Mobility — eVTOL Opportunity</div>
+
+  <div style="background:linear-gradient(135deg,#1b5e20,#2e7d32);color:white;border-radius:10px;padding:15px 20px;margin-bottom:22px;">
+    <div style="font-size:14px;font-weight:700;margin-bottom:6px;">Eve eVTOL: Maiden Flight Dec 2025 → FAA Cert Sprint 2026–2027 → World's Largest eVTOL Pre-Order Book</div>
+    <div style="font-size:12px;opacity:.93;line-height:1.7;">Eve Air Mobility (NYSE: EVEX, spun off from Embraer in 2022) completed its eVTOL prototype maiden flight in December 2025. Eve has the world's largest eVTOL pre-order book: 2,800+ aircraft orders from operators including United Airlines, Atlas Taxi Aéreo, and Republic Airways. Next milestone: FAA type certification under Special Conditions (new regulatory framework for eVTOL). Targeting 2026–2027. Production entry into service targeting 2027. Melbourne FL is HQ. <strong>No established eVTOL cert documentation vendor ecosystem exists yet — Cyient has a first-mover window.</strong></div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:22px;">
+    <div class="card">
+      <div class="card-title">📋 Eve eVTOL Program Timeline</div>
+      <div style="font-size:12px;color:#444;line-height:1.9;">
+        <div style="padding:6px 0;border-bottom:1px solid #eee;"><strong style="color:#2e7d32;">Dec 2025</strong> — Maiden flight ✅</div>
+        <div style="padding:6px 0;border-bottom:1px solid #eee;"><strong style="color:#0062cc;">2026</strong> — FAA certification flight testing · MOC documentation sprint</div>
+        <div style="padding:6px 0;border-bottom:1px solid #eee;"><strong style="color:#ff9800;">2026–2027</strong> — FAA type certificate (target)</div>
+        <div style="padding:6px 0;border-bottom:1px solid #eee;"><strong style="color:#ff9800;">2027</strong> — Production EIS (first customer deliveries)</div>
+        <div style="padding:6px 0;"><strong style="color:#333;">2027+</strong> — Fleet documentation, AMM/AFM, fleet support</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">🎯 Cyient First-Mover Strategy</div>
+      <div style="font-size:12px;color:#444;line-height:1.8;">
+        <div style="background:#e8f5e9;border-radius:6px;padding:10px;margin-bottom:10px;">
+          <strong style="color:#1b5e20;">Why Act Now (Not Later):</strong> eVTOL certification documentation is a new category. The firms that build this capability now with Eve will be preferred vendors for Joby, Archer, Wisk, and Lilium successor programs. Cyient's entry cost is one small Eve cert doc project. The upside is a new $50M+ documentation service line.
+        </div>
+        <div style="background:#e8f4fd;border-radius:6px;padding:10px;">
+          <strong style="color:#003087;">Pilot Offer:</strong> Propose a scoped FAA Part 23 / Special Conditions documentation pilot: 2 Cyient cert engineers + 1 tech writer, 3-month engagement, MOC documentation for one certification item. Zero-risk entry for Eve; builds Cyient's eVTOL pedigree.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">✈️ Eve eVTOL Technical Profile (for Engineering Pitch Context)</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;font-size:12px;">
+      <div style="background:#f8faff;border-radius:8px;padding:12px;"><strong>Configuration:</strong> Distributed electric propulsion · 8 lift rotors + 2 pusher propellers · Fixed wing · No mechanical rotor complexity</div>
+      <div style="background:#f8faff;border-radius:8px;padding:12px;"><strong>Performance:</strong> ~5 passengers · 60 km range · 250 km/h cruise · Low noise (target: 65 dBA on approach)</div>
+      <div style="background:#f8faff;border-radius:8px;padding:12px;"><strong>Certification:</strong> FAA Special Conditions + Part 23 enhanced · EASA SC-VTOL · DO-178C for FCS software · DO-311A for batteries</div>
+      <div style="background:#f8faff;border-radius:8px;padding:12px;"><strong>Pre-orders:</strong> 2,800+ aircraft (largest eVTOL order book globally) · United Airlines, Atlas, Republic, and 25+ operators</div>
+      <div style="background:#f8faff;border-radius:8px;padding:12px;"><strong>Cyient Documentation Scope:</strong> FAA MOC/AMC docs · AMM/AFM (new format for eVTOL) · Battery maintenance manuals · DO-178C SW cert artifacts</div>
+      <div style="background:#f8faff;border-radius:8px;padding:12px;"><strong>Embraer Link:</strong> Eve carries Embraer's 48% ownership + engineering legacy. Eve uses Embraer SJC CoE for structural/systems engineering support — SJC Brazil entry point also works.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ INDIA STRATEGY ═══ -->
+<div id="india" class="section">
+  <div class="section-title">🇮🇳 India Strategy — Three-Way Entry (Embraer + Adani + Mahindra)</div>
+
+  <div class="india-banner">
+    <div style="font-size:15px;font-weight:700;margin-bottom:6px;">🚨 Highest India Activity in Embraer's History — Cyient Must Be in This Picture</div>
+    <div style="font-size:12px;opacity:.93;line-height:1.7;">Embraer opened India representative office New Delhi October 2025. C-390 India campaign with Adani Defence + Mahindra Defence as JV partners. IAF medium transport requirement ~56 aircraft. DPP 2016 offset mandate requires significant India engineering content. Embraer has ZERO India engineering delivery infrastructure. Cyient BIETC Hyderabad is the answer — but must move before TCS or Infosys locks in the relationship.</div>
+  </div>
+
+  <div class="grid-3" style="margin-bottom:22px;">
+    <div class="card" style="border-top-color:#003087;">
+      <div class="card-title" style="color:#003087;">🇧🇷 Embraer India (New Delhi)</div>
+      <div style="font-size:12px;color:#444;line-height:1.7;">Representative office only, ~25 people. C-390 IAF campaign leadership. E-Jets India airline pitch (IndiGo, Air India E-Jet evaluations). No engineering delivery capability. Cyient opportunity: engineering partner for all India technical requirements — DPP offset calculation, local modification engineering, India-specific tech manuals.</div>
+    </div>
+    <div class="card" style="border-top-color:#ff6f00;">
+      <div class="card-title" style="color:#c25700;">🏭 Adani Defence Systems (Ahmedabad)</div>
+      <div style="font-size:12px;color:#444;line-height:1.7;">Gautam Adani's defense manufacturing venture. Growing rapidly post-2022 defense privatization push. Embraer's preferred India JV partner for C-390 local production. Building aerospace engineering capability from scratch — needs credible partners like Cyient for structures, avionics, and tech pubs engineering delivery.</div>
+    </div>
+    <div class="card" style="border-top-color:#e53935;">
+      <div class="card-title" style="color:#b71c1c;">🚗 Mahindra Defence (Mumbai)</div>
+      <div style="font-size:12px;color:#444;line-height:1.7;">Mahindra's defense arm — more established than Adani in aerospace (Mahindra Satyam legacy in IT, growing manufacturing capability). C-390 JV partner alongside Adani. Also developing India's Light Combat Helicopter support infrastructure. Existing engineering services procurement infrastructure makes Cyient partnership a faster close.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🎯 Recommended India Entry Sequence</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;font-size:12px;">
+      <div style="background:#e8f4fd;border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:22px;font-weight:800;color:#0062cc;">1</div>
+        <div style="font-weight:700;color:#003087;margin:4px 0;">Embraer India New Delhi</div>
+        <div style="color:#555;font-size:11px;">Intro via Sam's Cyient India network → position as engineering delivery partner for C-390 India → lead with offset engineering model</div>
+      </div>
+      <div style="background:#fff3e0;border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:22px;font-weight:800;color:#e65100;">2</div>
+        <div style="font-weight:700;color:#003087;margin:4px 0;">Adani Defence (Ahmedabad)</div>
+        <div style="color:#555;font-size:11px;">New aerospace entrant → needs proven partner → Cyient structures/tech pubs engineering for C-390 JV work. Adani is fastest-growing defense player in India.</div>
+      </div>
+      <div style="background:#fce4ec;border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:22px;font-weight:800;color:#c2185b;">3</div>
+        <div style="font-weight:700;color:#003087;margin:4px 0;">Mahindra Defence (Mumbai)</div>
+        <div style="color:#555;font-size:11px;">More established → procurement process exists → sub-contract for C-390 engineering work. Existing IT/engineering services procurement relationship possible via Mahindra Group.</div>
+      </div>
+      <div style="background:#e8f5e9;border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:22px;font-weight:800;color:#2e7d32;">4</div>
+        <div style="font-weight:700;color:#003087;margin:4px 0;">Eve India / eVTOL</div>
+        <div style="color:#555;font-size:11px;">Eve has no India presence yet — but UAM market in India (Mumbai, Delhi air mobility) will demand local support. Plant the flag early via Melbourne FL Eve team.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PROGRAMS ═══ -->
+<div id="programs" class="section">
+  <div class="section-title">✈️ Fleet Programs</div>
+  <div class="grid-2">
+    <div class="card" style="border-top-color:#0062cc;">
+      <div class="card-title" style="color:#0062cc;">E-Jet E2 Family — World's Most Efficient Narrowbodies</div>
+      <div style="font-size:12px;color:#444;line-height:1.8;">
+        <div style="background:#e8f4fd;border-radius:6px;padding:10px;margin-bottom:10px;"><strong>E175-E2:</strong> 80 seats · 3,735 nm · CFM LEAP-1E2 · ANAC/FAA cert · US regional market (subject to scope clause negotiations)<br><strong>E190-E2:</strong> 106 seats · 3,293 nm · PW1900G · 20% more fuel efficient than E190 E1<br><strong>E195-E2:</strong> 146 seats · 2,600 nm · PW1900G · Largest Embraer narrowbody. Backlog 300+ aircraft.</div>
+        <strong>Cyient angle:</strong> E2 documentation ramp (AMM/AFM/SRM authoring), ANAC/FAA certification documentation, structural analysis for wing and empennage. Pratt & Whitney PW1900G engine connection (cross-sell to RTX/P&W account).
+      </div>
+    </div>
+    <div class="card" style="border-top-color:#2e7d32;">
+      <div class="card-title" style="color:#2e7d32;">Executive Jets — Phenom + Praetor</div>
+      <div style="font-size:12px;color:#444;line-height:1.8;">
+        <div style="background:#f1f8e9;border-radius:6px;padding:10px;margin-bottom:10px;"><strong>Phenom 100EX:</strong> Light jet · 4 pax · 1,178 nm · Pratt & Whitney Canada<br><strong>Phenom 300E:</strong> Light jet · 10 pax · 2,010 nm · PW535E1<br><strong>Praetor 500:</strong> Midsize · 9 pax · 3,340 nm · Honeywell HTF7500E<br><strong>Praetor 600:</strong> Super-midsize · 12 pax · 4,018 nm · Honeywell HTF7500E · Collins Pro Line Fusion</div>
+        <strong>Cyient angles:</strong> Collins Pro Line Fusion avionics integration (Praetor 600), Honeywell engine component SBs, IFC/cabin connectivity systems (Honeywell Aspire), structural analysis. Melbourne FL is the delivery hub.
+      </div>
+    </div>
+    <div class="card" style="border-top-color:#e65100;">
+      <div class="card-title" style="color:#e65100;">C-390 Millennium — Modern Military Transport</div>
+      <div style="font-size:12px;color:#444;line-height:1.8;">
+        <div style="background:#fff3e0;border-radius:6px;padding:10px;margin-bottom:10px;"><strong>C-390:</strong> Medium military transport · 26,000 kg payload · Mach 0.8 · 2 IAE V2500 engines<br><strong>KC-390:</strong> Tanker/transport variant<br><strong>Customers:</strong> Brazil (28), Portugal, Netherlands, Hungary, Austria; India campaign active<br><strong>Price:</strong> ~$50M per aircraft</div>
+        <strong>Cyient angles:</strong> India offset engineering for IAF deal, military tech manual authoring (Indian format), Adani/Mahindra JV sub-contracting, EWIS/IPC for modification engineering. IAE V2500 engine connection (cross-sell to RTX/IAE account).
+      </div>
+    </div>
+    <div class="card" style="border-top-color:#c2185b;">
+      <div class="card-title" style="color:#c2185b;">Eve eVTOL — Next Generation</div>
+      <div style="font-size:12px;color:#444;line-height:1.8;">
+        <div style="background:#fce4ec;border-radius:6px;padding:10px;margin-bottom:10px;"><strong>Eve eVTOL:</strong> 5 passengers · 60 km · 250 km/h · Distributed electric propulsion<br><strong>Maiden flight:</strong> December 2025 ✅<br><strong>Type cert target:</strong> 2026–2027<br><strong>Pre-orders:</strong> 2,800+ (world's largest eVTOL order book)<br><strong>NYSE:</strong> EVEX (spun off 2022)</div>
+        <strong>Cyient first-mover opportunity:</strong> eVTOL certification documentation (FAA Special Conditions), DO-178C FCS software cert, DO-311A battery cert, AMM authoring for eVTOL-specific maintenance format. No established vendor ecosystem — build it with Eve now.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ COMPETITIVE INTEL ═══ -->
+<div id="competitive" class="section">
+  <div class="section-title">⚔️ Competitive Intel</div>
+
+  <div class="vg-block">
+    <div style="font-size:12px;font-weight:700;margin-bottom:5px;">👁️ COMPETITOR WATCH — Verify Global (verifyglobal.com)</div>
+    <div style="font-size:11px;line-height:1.65;opacity:.93;">Verify Global (HQ: Costa Mesa CA) specializes in Supplier Quality Management — FAI, PPAP, AS9145 compliance at Tier-1/Tier-2 suppliers. <strong>Overlap risk at Embraer: supplier quality at Embraer's Brazil supply chain and US MRO suppliers.</strong> Cyient counter: broader engineering scope + India delivery + long-term program embedding vs. Verify Global's spot-inspection model.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🏆 Competitor Landscape — Who Else Is Selling to Embraer</div>
+    <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead><tr style="background:#f0f8ff;"><th style="padding:9px;text-align:left;border-bottom:2px solid #0062cc;">Competitor</th><th style="padding:9px;text-align:left;border-bottom:2px solid #0062cc;">Embraer Footprint</th><th style="padding:9px;text-align:left;border-bottom:2px solid #0062cc;">Threat</th><th style="padding:9px;text-align:left;border-bottom:2px solid #0062cc;">Cyient Counter</th></tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #eee;">
+          <td style="padding:9px;"><strong>TCS / Wipro / Infosys</strong><br><span style="font-size:11px;color:#888;">India IT/ER&D</span></td>
+          <td style="padding:9px;">IT and ERP services at SJC Brazil (Embraer's SAP landscape, digital systems). TCS has a Brazil presence alongside Embraer. All three large IT firms are pitching India offset engineering for C-390.</td>
+          <td style="padding:9px;"><span class="tag-hot tag">🔴 HIGH</span></td>
+          <td style="padding:9px;">Aerospace domain specialization. TCS/Wipro are generalist IT — Cyient is aerospace-only. Lead with: "We don't do banking or retail IT. We do structures, avionics, certification, and tech pubs. That's all we do." Differentiation is clear.</td>
+        </tr>
+        <tr style="border-bottom:1px solid #eee;background:#fafafa;">
+          <td style="padding:9px;"><strong>Elbit Systems / Embraer Defense JVs</strong><br><span style="font-size:11px;color:#888;">Defense Systems</span></td>
+          <td style="padding:9px;">Embraer has defense JV history with Israeli defense firms for avionics/mission systems. Not a direct engineering services competitor but relevant for defense account context.</td>
+          <td style="padding:9px;"><span class="tag-accent tag">🔵 LOW</span></td>
+          <td style="padding:9px;">Market context only — Elbit is a platform systems integrator, not an ER&D vendor. Not a Cyient competitive concern.</td>
+        </tr>
+        <tr style="border-bottom:1px solid #eee;">
+          <td style="padding:9px;"><strong>Quest Global / Alten</strong><br><span style="font-size:11px;color:#888;">Aerospace ER&D</span></td>
+          <td style="padding:9px;">Quest and Alten have aerospace ER&D footprints across commercial aviation OEMs including Embraer Brazil. Structures, certification, and PLM services.</td>
+          <td style="padding:9px;"><span class="tag" style="background:#fff3e0;color:#e65100;">🟡 MEDIUM</span></td>
+          <td style="padding:9px;">India delivery scale is the differentiator. Quest/Alten are primarily European/onshore delivery models. Cyient's BIETC Hyderabad provides cost advantage plus India-specific C-390 offset value that Quest/Alten cannot offer.</td>
+        </tr>
+        <tr style="background:#fafafa;">
+          <td style="padding:9px;"><strong>HAL (Hindustan Aeronautics)</strong><br><span style="font-size:11px;color:#888;">India Defense OEM</span></td>
+          <td style="padding:9px;">HAL is a potential C-390 manufacturing offset partner (alongside Adani/Mahindra) for IAF deal. HAL has its own engineering capability — will compete for offset work share.</td>
+          <td style="padding:9px;"><span class="tag" style="background:#fff3e0;color:#e65100;">🟡 MEDIUM (India)</span></td>
+          <td style="padding:9px;">HAL focuses on manufacturing, not documentation/certification engineering services. Cyient complements HAL rather than competes — position as documentation and certification engineering partner alongside HAL manufacturing.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SKILLS ═══ -->
+<div id="skills" class="section">
+  <div class="section-title">⚡ Fast-Sell Skills Matrix</div>
+  <div class="card">
+    <div class="card-title">🎯 Embraer-Specific Skill Tags</div>
+    <div style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:#666;margin-bottom:8px;text-transform:uppercase;">Documentation / Tech Pubs</div>
+      <span class="tag tag-accent">ATA iSpec 2200</span><span class="tag tag-accent">S1000D</span><span class="tag tag-accent">AMM/AFM/SRM authoring</span><span class="tag tag-accent">Service Bulletin authoring</span><span class="tag tag-accent">AAIP documentation</span><span class="tag tag-accent">E-Jet E2 AMM factory</span>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:#666;margin-bottom:8px;text-transform:uppercase;">Certification Engineering</div>
+      <span class="tag tag-accent">ANAC certification docs</span><span class="tag tag-accent">FAA Part 23/25</span><span class="tag tag-accent">FAA Special Conditions (eVTOL)</span><span class="tag tag-accent">MOC/AMC documentation</span><span class="tag tag-accent">DER support</span>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:#666;margin-bottom:8px;text-transform:uppercase;">Structures / Engineering</div>
+      <span class="tag tag-accent">CATIA V5/V6</span><span class="tag tag-accent">Abaqus FEA</span><span class="tag tag-accent">Part 23/25 structures</span><span class="tag tag-accent">Damage tolerance</span><span class="tag tag-accent">C-390 structural analysis</span>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:#666;margin-bottom:8px;text-transform:uppercase;">Avionics / Embedded SW</div>
+      <span class="tag tag-accent">DO-178C DAL A/B</span><span class="tag tag-accent">Collins Pro Line Fusion</span><span class="tag tag-accent">DO-311A battery cert</span><span class="tag tag-accent">ARINC 429</span><span class="tag tag-accent">FCS software cert (eVTOL)</span>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:#666;margin-bottom:8px;text-transform:uppercase;">India-Specific</div>
+      <span class="tag tag-india">DPP offset engineering</span><span class="tag tag-india">C-390 India campaign</span><span class="tag tag-india">Adani Defence partner</span><span class="tag tag-india">Mahindra Defence sub-contract</span><span class="tag tag-india">BIETC Hyderabad</span>
+    </div>
+    <div>
+      <div style="font-size:11px;font-weight:700;color:#666;margin-bottom:8px;text-transform:uppercase;">Credentials to Lead With</div>
+      <span class="tag tag-hot">AS9100 certified</span><span class="tag tag-hot">BIETC Hyderabad CoE</span><span class="tag tag-hot">Peer OEM pedigree (Textron, Boeing, GE, BAE)</span><span class="tag tag-hot">eVTOL first-mover opportunity</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ REFERENCE ═══ -->
+<div id="reference" class="section">
+  <div class="section-title">📚 Market Context</div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">🌐 Embraer vs. Regional/Bizav Peers</div>
+      <table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+        <thead><tr style="background:#f0f8ff;"><th style="padding:8px;text-align:left;border-bottom:2px solid #0062cc;">OEM</th><th style="padding:8px;border-bottom:2px solid #0062cc;">Revenue</th><th style="padding:8px;border-bottom:2px solid #0062cc;">Specialty</th><th style="padding:8px;border-bottom:2px solid #0062cc;">Cyient In?</th></tr></thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #eee;"><td style="padding:8px;"><strong>Embraer</strong></td><td style="padding:8px;">$7.6B</td><td style="padding:8px;">Regional + Bizav + Defense</td><td style="padding:8px;"><span style="color:#ff9800;font-weight:700;">🎯 Target</span></td></tr>
+          <tr style="border-bottom:1px solid #eee;background:#fafafa;"><td style="padding:8px;"><strong>Bombardier</strong></td><td style="padding:8px;">$9.3B</td><td style="padding:8px;">Pure-play bizav</td><td style="padding:8px;"><span style="color:#ff9800;font-weight:700;">🎯 Target</span></td></tr>
+          <tr style="border-bottom:1px solid #eee;"><td style="padding:8px;"><strong>ATR</strong><br><span style="font-size:10px;color:#888;">Airbus + Leonardo JV</span></td><td style="padding:8px;">~$2B</td><td style="padding:8px;">Regional turboprops</td><td style="padding:8px;"><span style="color:#888;font-weight:700;">⚪ Explore</span></td></tr>
+          <tr><td style="padding:8px;"><strong>Textron Aviation</strong></td><td style="padding:8px;">~$6B</td><td style="padding:8px;">Cessna/Beechcraft/Citation</td><td style="padding:8px;"><span style="color:#2e7d32;font-weight:700;">✅ Active</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">📈 Key Trends Driving Embraer Growth</div>
+      <div style="font-size:12px;color:#444;line-height:1.8;">
+        <div style="margin-bottom:8px;padding:8px;background:#f8faff;border-radius:6px;"><strong>1. Regional Aviation Recovery:</strong> Post-COVID regional routes recovering globally. E2 family fuel efficiency (PW Geared Turbofan) gives operators 20% CASM advantage — driving conversion from E1 and ATR.</div>
+        <div style="margin-bottom:8px;padding:8px;background:#f1f8e9;border-radius:6px;"><strong>2. Defense Diversification:</strong> C-390 wins new customers (Netherlands, Hungary, Austria, Portugal). India IAF deal is the largest potential defense contract in Embraer history.</div>
+        <div style="margin-bottom:8px;padding:8px;background:#fce4ec;border-radius:6px;"><strong>3. eVTOL First-Mover (Eve):</strong> 2,800+ pre-orders and maiden flight Dec 2025 positions Eve as the most credible eVTOL program. NYSE listing provides independent funding runway.</div>
+        <div style="padding:8px;background:#fff3e0;border-radius:6px;"><strong>4. India as Key Market:</strong> India regional aviation is the fastest-growing aviation market globally. Embraer's India investment (New Delhi office, C-390 campaign, E-Jet pitch to IndiGo/Air India) is accelerating.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end main-content -->
+</div><!-- end container -->
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('sb-refresh').textContent = EM_DATA.lastRefreshed;
+  document.getElementById('kpi-rev').textContent  = '$' + EM_DATA.revenue + 'B';
+  document.getElementById('kpi-rev-g').textContent = '▲ +' + EM_DATA.revenueGrowth + '% YoY';
+  document.getElementById('kpi-bl').textContent   = '$' + EM_DATA.backlog + 'B';
+  document.getElementById('kpi-bl-g').textContent  = '▲ +' + EM_DATA.backlogGrowth + '% YoY';
+  document.getElementById('kpi-com').textContent  = EM_DATA.commercialDeliveries;
+  document.getElementById('kpi-exec').textContent = EM_DATA.execJetDeliveries;
+  document.getElementById('kpi-ebit').textContent = EM_DATA.ebitMargin + '%';
+  document.getElementById('kpi-fcf').textContent  = '$' + EM_DATA.freeCashFlow + 'M';
+  document.getElementById('kpi-roles').textContent = '~' + EM_DATA.openRoles + '+';
+});
+
+function switchSection(evt, id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (evt && evt.currentTarget) evt.currentTarget.classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+document.getElementById('overview').classList.add('active');
+</script>
+</body>
+</html>
